@@ -42,6 +42,7 @@ from flask import Flask, render_template, request, redirect, url_for
 # Other libraries
 import os
 from werkzeug.utils import secure_filename
+from pypdf import PdfReader
 
 
 # LLM
@@ -64,7 +65,11 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 
 # Embeddings
-embeddings = HuggingFaceEmbeddings()
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_kwargs={"device": "cpu"},
+    encode_kwargs={"normalize_embeddings": True}
+)
 
 
 # Flask application
@@ -79,18 +84,16 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Extract text from PDF
 def extract_text_from_pdf(pdf_path):
 
-    with open(pdf_path, 'rb') as file:
+    reader = PdfReader(pdf_path)
 
-        reader = PyPDF2.PdfReader(file)
+    text = ""
 
-        text = ""
+    for page in reader.pages:
 
-        for page in reader.pages:
+        page_text = page.extract_text()
 
-            page_text = page.extract_text()
-
-            if page_text:
-                text += page_text + "\n"
+        if page_text:
+            text += page_text + "\n"
 
     return text
 
@@ -110,9 +113,8 @@ Notable Achievements
 
 Instructions:
 Provide a concise summary of the resume, focusing on the candidate's
-skills, experience and career trajectory. Ensure the summary is
-well-structured, clear and highlights the candidate's strengths
-in alignment with industry standards.
+skills, experience and career trajectory. Ensure it is well-structured,
+clear and highlights the candidate's strengths in alignment with industry standards.
 
 Resume:
 {resume}
